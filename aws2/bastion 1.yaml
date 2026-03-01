@@ -17,7 +17,7 @@ Parameters:
   NetworkStackName:
     Description: Name of parent network CloudFormation stack
     Type: String
-    Default: basic-nwk
+    Default: basic-network
 
   ImageId:
     Description: AMI (Amazon Machine Image) ID

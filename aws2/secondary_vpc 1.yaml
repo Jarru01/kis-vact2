@@ -23,7 +23,7 @@ Parameters:
   ImageId:
     Description: AMI (Amazon Machine Image) ID
     Type: String
-    Default: ami-0f3caa1cf4417e51b
+    Default: ami-0f3caa1cf4417e51b # toto sa meni
 
   InstanceType:
     Description: Instance type (number of vCPUs, memory, bandwidth, etc.)
@@ -33,7 +33,7 @@ Parameters:
   IamInstanceProfileName:
     Description: Instance IAM profile name
     Type: String
-    Default: c201421a5141573l13826754t1w745863548161-SsmRoleInstanceProfile-5WpgWSn5BfRU    
+    Default: c201421a5141573l13826754t1w745863548161-SsmRoleInstanceProfile-iuN9EBXHDzPy    #toto sa meni (iam)
 
   NetworkStackName:
     Description: Name of parent network CloudFormation stack
