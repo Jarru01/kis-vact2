@@ -229,7 +229,7 @@ Resources:
     Properties:
         RouteTableId: !Ref PrivateRouteTableA
         DestinationCidrBlock: '10.222.0.0/16'
-        VpcPeeringConnectionId: ppcx-01442bbf41129f759 # toto sa meni(id) 
+        VpcPeeringConnectionId: pcx-01442bbf41129f759 # toto sa meni(id) 
       
 
   DefaultRouteB:
