@@ -230,7 +230,14 @@ Resources:
         RouteTableId: !Ref PrivateRouteTableA
         DestinationCidrBlock: '10.222.0.0/16'
         VpcPeeringConnectionId: pcx-01442bbf41129f759 # toto sa meni(id) 
-      
+
+  #kvoli Bastion → PrivateInstance_secondaryVPC
+  RouteToSecondaryFromPublic:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 10.222.0.0/16
+      VpcPeeringConnectionId: pcx-01442bbf41129f759  # peering ID
 
   DefaultRouteB:
     DependsOn: NATGatewayB
