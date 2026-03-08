@@ -57,7 +57,7 @@ Parameters:
 Resources:
 ###########################################################################
 ### Part 1 - security groups (firewall) & SSH key pair
-###########################################################################
+##########################################################################
   SecurityGroupForPublicInstances:
     Type: AWS::EC2::SecurityGroup
     Properties:
