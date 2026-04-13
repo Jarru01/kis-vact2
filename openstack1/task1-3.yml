@@ -56,7 +56,7 @@ resources:
     properties:
       name: router-vm
       image: debian-12-kis
-      flavor: 1c05r8d
+      flavor: 1c2r50d
       availability_zone: nova
       networks:
         - network: { get_param: external_net }   # external
@@ -80,7 +80,7 @@ resources:
     properties:
       name: web-vm
       image: debian-12-kis
-      flavor: 1c05r8d
+      flavor: 1c2r50d
       availability_zone: nova
       networks:
         - network: { get_resource: internal_net }
