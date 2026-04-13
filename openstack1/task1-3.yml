@@ -74,6 +74,7 @@ resources:
 
   # ----------------------
   # WEB SERVER VM
+  # need to edit default route later
   # ----------------------
   web_vm:
     type: OS::Nova::Server
