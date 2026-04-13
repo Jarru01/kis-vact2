@@ -1,0 +1,52 @@
+heat_template_version: 2018-08-31
+
+description: Two VMs in the same network
+
+parameters:
+  network_name:
+    type: string
+    default: ext-net-154
+
+resources:
+
+  sec_group:
+    type: OS::Neutron::SecurityGroup
+    properties:
+      name: sg-common
+      rules:
+        - protocol: icmp
+        - protocol: tcp
+          port_range_min: 22
+          port_range_max: 22
+
+  port1:
+    type: OS::Neutron::Port
+    properties:
+      network: { get_param: network_name }
+      security_groups: [ { get_resource: sec_group } ]
+
+  port2:
+    type: OS::Neutron::Port
+    properties:
+      network: { get_param: network_name }
+      security_groups: [ { get_resource: sec_group } ]
+
+  vm1:
+    type: OS::Nova::Server
+    properties:
+      name: vm1
+      image: cirros
+      flavor: 1c05r1d
+      availability_zone: nova
+      networks:
+        - port: { get_resource: port1 }
+
+  vm2:
+    type: OS::Nova::Server
+    properties:
+      name: vm2
+      image: cirros
+      flavor: 1c05r1d
+      availability_zone: nova
+      networks:
+        - port: { get_resource: port2 }

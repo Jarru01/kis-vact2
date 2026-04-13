@@ -1,0 +1,73 @@
+heat_template_version: 2018-08-31
+
+description: VM router + internal VM behind it
+
+parameters:
+  external_net:
+    type: string
+    default: ext-net-154
+
+resources:
+
+  # ----------------------
+  # Internal network
+  # ----------------------
+  internal_net:
+    type: OS::Neutron::Net
+    properties:
+      name: net-is1
+
+  internal_subnet:
+    type: OS::Neutron::Subnet
+    properties:
+      name: subnet-is1
+      network_id: { get_resource: internal_net }
+      cidr: 192.168.50.0/24
+      ip_version: 4
+      gateway_ip: 192.168.50.1
+
+  # ----------------------
+  # Security group
+  # ----------------------
+  sec_group:
+    type: OS::Neutron::SecurityGroup
+    properties:
+      name: sg-basic
+      rules:
+        - protocol: icmp
+        - protocol: tcp
+          port_range_min: 22
+          port_range_max: 22
+
+  # ----------------------
+  # ROUTER VM (dual-homed)
+  # ----------------------
+  router_vm:
+    type: OS::Nova::Server
+    properties:
+      name: vm-router
+      image: cirros
+      flavor: 1c05r1d
+      availability_zone: nova
+      networks:
+        - network: { get_param: external_net }   # external
+        - network: { get_resource: internal_net } # internal
+      security_groups: [ { get_resource: sec_group } ]
+      user_data_format: RAW
+      user_data: |
+        #!/bin/sh
+        echo 1 > /proc/sys/net/ipv4/ip_forward
+
+  # ----------------------
+  # INTERNAL VM (behind router)
+  # ----------------------
+  internal_vm:
+    type: OS::Nova::Server
+    properties:
+      name: vm-internal
+      image: cirros
+      flavor: 1c05r1d
+      availability_zone: nova
+      networks:
+        - network: { get_resource: internal_net }
+      security_groups: [ { get_resource: sec_group } ]
