@@ -4,3 +4,4 @@
 * aws3 - EC2 instances & EC2 autoscaling & load balancing
 * aws4 - AWS Lambda, AWS Step Functions, AWS API GW, Containers (aws activity)
 * aws5 - AWS CloudFormation – S3, CloudWatch
+* openstack1 - Basic HEAT scripts (CloudFormation for openstack) 
