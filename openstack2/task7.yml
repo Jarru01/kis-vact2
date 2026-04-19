@@ -1,0 +1,37 @@
+heat_template_version: 2018-08-31
+
+description: >
+  Úloha 7: Vytvorenie VM a nového SSH kľúča priamo v skripte s výpisom 
+  privátnej časti kľúča do výstupu (outputs).
+
+parameters:
+  external_net:
+    type: string
+    default: ext-net-154
+
+resources:
+  # 1. VYTVORENIE SSH KĽÚČA
+  # OpenStack vygeneruje pár kľúčov a uloží si ho pod týmto menom
+  moj_novy_kluc:
+    type: OS::Nova::KeyPair
+    properties:
+      name: kluc-uloha7
+      save_private_key: true # TOTO JE KĽÚČOVÉ - povie Heatu, aby si uložil privátnu časť
+
+  # 2. VIRTUÁLNY STROJ
+  vm_s_klucom:
+    type: OS::Nova::Server
+    properties:
+      name: vm-uloha7
+      image: cirros
+      flavor: 1c05r1d
+      key_name: { get_resource: moj_novy_kluc }
+      networks:
+        - network: { get_param: external_net }
+
+outputs:
+  # 3. VÝPIS PRIVÁTNEHO KĽÚČA
+  # Po úspešnom vytvorení stacku ho nájdeš v záložke "Outputs"
+  private_key:
+    description: Privátny kľúč pre prístup k VM. Uložte si ho do súboru .pem!
+    value: { get_attr: [moj_novy_kluc, private_key] }

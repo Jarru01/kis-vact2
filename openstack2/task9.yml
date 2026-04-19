@@ -1,0 +1,53 @@
+heat_template_version: 2018-08-31
+
+description: >
+  Úloha 9: Oprava vlastnosti security_group pre pravidlo Telnetu.
+
+parameters:
+  external_net:
+    type: string
+    default: ext-net-154
+  
+  povolenie_telnetu:
+    type: boolean
+    description: Chcete povoliť protokol Telnet (port 23)?
+    default: false
+
+conditions:
+  vytvorit_telnet_pravidlo: {equals: [{get_param: povolenie_telnetu}, true]}
+
+resources:
+  # 1. ZÁKLADNÁ SECURITY GROUP
+  moja_sg:
+    type: OS::Neutron::SecurityGroup
+    properties:
+      name: sg-uloha9
+      rules:
+        - protocol: tcp
+          port_range_min: 22
+          port_range_max: 22
+
+  # 2. SAMOSTATNÉ PRAVIDLO PRE TELNET
+  telnet_rule:
+    type: OS::Neutron::SecurityGroupRule
+    condition: vytvorit_telnet_pravidlo
+    properties:
+      # ZMENA: Namiesto security_group_id skúsime security_group
+      security_group: { get_resource: moja_sg }
+      protocol: tcp
+      port_range_min: 23
+      port_range_max: 23
+      direction: ingress
+      ethertype: IPv4 # Pridané pre lepšiu kompatibilitu
+
+  # 3. VIRTUÁLNY STROJ
+  server_uloha9:
+    type: OS::Nova::Server
+    properties:
+      name: server-uloha9
+      image: cirros
+      flavor: 1c05r1d
+      networks:
+        - network: { get_param: external_net }
+      security_groups:
+        - { get_resource: moja_sg }

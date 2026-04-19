@@ -1,0 +1,98 @@
+heat_template_version: 2018-08-31
+
+description: >
+  Úloha 5: Dve VM pripojené priamo do externej siete bez privátneho subnetu.
+  Špecifické pravidlá pre šifrovaný mail (TLS) a vzájomnú komunikáciu.
+
+parameters:
+  external_net:
+    type: string
+    default: ext-net-154
+
+resources:
+
+  # -------------------------------------------------------
+  # 1. SECURITY GROUPS
+  # -------------------------------------------------------
+
+  sec_group_common:
+    type: OS::Neutron::SecurityGroup
+    properties:
+      name: sg-uloha5-common
+      rules:
+        # Povoľ ICMP (ping)
+        - protocol: icmp
+        
+        # Povoľ šifrovaný mail (TLS/SSL) na oba PC:
+        # SMTPS (465), STARTTLS (587), IMAPS (993), POP3S (995)
+        - protocol: tcp
+          port_range_min: 465
+          port_range_max: 465
+        - protocol: tcp
+          port_range_min: 587
+          port_range_max: 587
+        - protocol: tcp
+          port_range_min: 993
+          port_range_max: 993
+        - protocol: tcp
+          port_range_min: 995
+          port_range_max: 995
+
+        # Povoľ komunikáciu medzi PC (vzájomne si povolia všetko)
+        # Použijeme remote_group_id, aby stroje v tej istej SG na seba videli
+        - protocol: tcp
+          remote_mode: remote_group_id
+        - protocol: udp
+          remote_mode: remote_group_id
+        - protocol: icmp
+          remote_mode: remote_group_id
+
+  sec_group_pc1:
+    type: OS::Neutron::SecurityGroup
+    properties:
+      name: sg-uloha5-pc1
+      rules:
+        # Povoľ SSH (22) len pre PC1
+        - protocol: tcp
+          port_range_min: 22
+          port_range_max: 22
+
+  sec_group_pc2:
+    type: OS::Neutron::SecurityGroup
+    properties:
+      name: sg-uloha5-pc2
+      rules:
+        # Povoľ RDP (3389) len pre PC2
+        - protocol: tcp
+          port_range_min: 3389
+          port_range_max: 3389
+
+  # -------------------------------------------------------
+  # 2. VIRTUÁLNE STROJE (PC1 a PC2)
+  # -------------------------------------------------------
+
+  pc1:
+    type: OS::Nova::Server
+    properties:
+      name: pc1
+      image: cirros
+      flavor: 1c05r1d
+      availability_zone: nova
+      networks:
+        - network: { get_param: external_net }
+      security_groups: 
+        - { get_resource: sec_group_common }
+        - { get_resource: sec_group_pc1 }
+
+  pc2:
+    type: OS::Nova::Server
+    properties:
+      name: pc2
+      image: cirros
+      flavor: 1c05r1d
+      availability_zone: nova
+      networks:
+        - network: { get_param: external_net }
+      security_groups: 
+        - { get_resource: sec_group_common }
+        - { get_resource: sec_group_pc2 }

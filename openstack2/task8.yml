@@ -1,0 +1,28 @@
+heat_template_version: 2018-08-31
+
+description: >
+  Úloha 8: Vytvorenie VM s dynamickým menom a výpisom jej IPv4 adresy.
+
+parameters:
+  external_net:
+    type: string
+    description: Názov alebo ID externej siete
+    default: ext-net-154
+
+resources:
+  # VYTVORENIE VIRTUÁLNEHO STROJA
+  moj_server:
+    type: OS::Nova::Server
+    properties:
+      # Dynamické meno: názov_stacku-server
+      name: { str_replace: { template: STACK-server, params: { STACK: { get_param: "OS::stack_name" } } } }
+      image: cirros
+      flavor: 1c05r1d
+      networks:
+        - network: { get_param: external_net }
+
+outputs:
+  # VÝPIS IPv4 ADRESY
+  vm_ipv4_address:
+    description: Pridelená IPv4 adresa servera.
+    value: { get_attr: [moj_server, networks, { get_param: external_net }, 0] }

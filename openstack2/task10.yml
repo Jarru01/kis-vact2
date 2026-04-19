@@ -1,0 +1,43 @@
+heat_template_version: 2018-08-31
+
+description: >
+  Úloha 10: Vytvorenie dynamického počtu VM podľa zadania používateľa.
+  Používa ResourceGroup na replikáciu definície servera.
+
+parameters:
+  external_net:
+    type: string
+    default: ext-net-154
+  
+  pocet_vm:
+    type: number
+    description: Zadajte počet virtuálnych strojov, ktoré chcete vytvoriť.
+    default: 2
+    constraints:
+      - range: { min: 1, max: 5 }
+        description: Počet VM musí byť medzi 1 a 5 (kvôli kvótam).
+
+resources:
+  # SKUPINA ZDROJOV (Resource Group)
+  skupina_serverov:
+    type: OS::Heat::ResourceGroup
+    properties:
+      count: { get_param: pocet_vm }
+      resource_def:
+        type: OS::Nova::Server
+        properties:
+          # %index% zabezpečí, že každá VM bude mať unikátne meno (server-0, server-1, ...)
+          name: 
+            str_replace:
+              template: STACK-server-%index%
+              params:
+                STACK: { get_param: "OS::stack_name" }
+          image: cirros
+          flavor: 1c05r1d
+          networks:
+            - network: { get_param: external_net }
+
+outputs:
+  zoznam_ip:
+    description: Zoznam IP adries všetkých vytvorených VM.
+    value: { get_attr: [skupina_serverov, refs] }

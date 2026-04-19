@@ -1,0 +1,37 @@
+heat_template_version: 2018-08-31
+
+description: >
+  Uloha 7 - Alternativa: Generovanie kluca cez OS::Heat::CloudConfig, 
+  ak Nova API zakazuje priame generovanie kluca.
+
+resources:
+  # Vygenerujeme si nahodny retazec, ktory pouzijeme ako "falošný" kľúč 
+  # (Poznámka: Skutočné RSA generovanie v čistom Heate bez KeyPair je obmedzené, 
+  # toto je spôsob ako ukázať princíp výstupu)
+  
+  generovany_kluc:
+    type: OS::Heat::RandomString
+    properties:
+      length: 32
+
+  vm_uloha7:
+    type: OS::Nova::Server
+    properties:
+      name: vm-uloha7
+      image: cirros
+      flavor: 1c05r1d
+      networks:
+        - network: ext-net-154
+      user_data_format: RAW
+      user_data: 
+        str_replace:
+          template: |
+            #!/bin/sh
+            echo "Kluc: $SEC" > /home/cirros/private_key.txt
+          params:
+            $SEC: { get_attr: [generovany_kluc, value] }
+
+outputs:
+  private_key:
+    description: "Vypis vygenerovaneho privatneho kluca (v tomto pripade RandomString kvoli restrikciam API)"
+    value: { get_attr: [generovany_kluc, value] }

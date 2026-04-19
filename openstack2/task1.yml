@@ -1,0 +1,103 @@
+heat_template_version: 2018-08-31
+
+description: >
+  Úloha 1: Heat template s natívnym Neutron routerom, internou sieťou 
+  a dvoma klientskymi VM (PC1, PC2) s definovanými Security Groups.
+
+parameters:
+  external_net:
+    type: string
+    default: ext-net-154
+
+resources:
+
+  # -------------------------------------------------------
+  # 1. SIEŤOVÁ INFRAŠTRUKTÚRA (Router, Net, Subnet)
+  # -------------------------------------------------------
+  
+  # Natívny OpenStack router (ikona na obrázku)
+  router:
+    type: OS::Neutron::Router
+    properties:
+      name: router-uloha1
+      external_gateway_info:
+        network: { get_param: external_net }
+
+  internal_net:
+    type: OS::Neutron::Net
+    properties:
+      name: net-is-uloha1
+
+  internal_subnet:
+    type: OS::Neutron::Subnet
+    properties:
+      name: subnet-is-uloha1
+      network_id: { get_resource: internal_net }
+      cidr: 192.168.88.0/24
+      ip_version: 4
+      gateway_ip: 192.168.88.1
+
+  # Prepojenie routra s internou sieťou
+  router_interface:
+    type: OS::Neutron::RouterInterface
+    properties:
+      router_id: { get_resource: router }
+      subnet_id: { get_resource: internal_subnet }
+
+  # -------------------------------------------------------
+  # 2. SECURITY GROUPS
+  # -------------------------------------------------------
+
+  sec_group_pc1:
+    type: OS::Neutron::SecurityGroup
+    properties:
+      name: sg-pc1
+      rules:
+        - protocol: icmp
+        # DNS (UDP aj TCP port 53)
+        - protocol: udp
+          port_range_min: 53
+          port_range_max: 53
+        - protocol: tcp
+          port_range_min: 53
+          port_range_max: 53
+
+  sec_group_pc2:
+    type: OS::Neutron::SecurityGroup
+    properties:
+      name: sg-pc2
+      rules:
+        - protocol: icmp
+        # HTTP/S (porty 80 a 443)
+        - protocol: tcp
+          port_range_min: 80
+          port_range_max: 80
+        - protocol: tcp
+          port_range_min: 443
+          port_range_max: 443
+
+  # -------------------------------------------------------
+  # 3. VIRTUÁLNE STROJE (PC1 a PC2)
+  # -------------------------------------------------------
+
+  pc1:
+    type: OS::Nova::Server
+    properties:
+      name: pc1
+      image: cirros
+      flavor: 1c05r1d
+      availability_zone: nova
+      networks:
+        - network: { get_resource: internal_net }
+      security_groups: [ { get_resource: sec_group_pc1 } ]
+
+  pc2:
+    type: OS::Nova::Server
+    properties:
+      name: pc2
+      image: cirros
+      flavor: 1c05r1d
+      availability_zone: nova
+      networks:
+        - network: { get_resource: internal_net }
+      security_groups: [ { get_resource: sec_group_pc2 } ]

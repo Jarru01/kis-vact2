@@ -1,0 +1,147 @@
+heat_template_version: 2018-08-31
+
+description: >
+  Úloha 4: Topológia s Router VM, jednou internou sieťou a dvoma PC.
+  Špecifické obmedzenia pre RFC 1918 a UNIZA sieť.
+
+parameters:
+  external_net:
+    type: string
+    default: ext-net-154
+
+resources:
+
+  # -------------------------------------------------------
+  # 1. SIEŤOVÁ INFRAŠTRUKTÚRA
+  # -------------------------------------------------------
+  internal_net:
+    type: OS::Neutron::Net
+    properties:
+      name: net-10-255-55
+
+  internal_subnet:
+    type: OS::Neutron::Subnet
+    properties:
+      name: subnet-10-255-55
+      network_id: { get_resource: internal_net }
+      cidr: 10.255.55.0/24
+      gateway_ip: 10.255.55.1
+
+  # -------------------------------------------------------
+  # 2. SECURITY GROUPS
+  # -------------------------------------------------------
+  sec_group_main:
+    type: OS::Neutron::SecurityGroup
+    properties:
+      name: sg-uloha4-common
+      rules:
+        - protocol: icmp
+        # SSH a RDP len z UNIZA (158.193.0.0/16)
+        - protocol: tcp
+          port_range_min: 22
+          port_range_max: 22
+          remote_ip_prefix: 158.193.0.0/16
+        - protocol: tcp
+          port_range_min: 3389
+          port_range_max: 3389
+          remote_ip_prefix: 158.193.0.0/16
+        # HTTP/s a DNS len z privátnych sietí (RFC 1918)
+        - protocol: tcp # HTTP
+          port_range_min: 80
+          port_range_max: 80
+          remote_ip_prefix: 10.0.0.0/8
+        - protocol: tcp
+          port_range_min: 80
+          port_range_max: 80
+          remote_ip_prefix: 172.16.0.0/12
+        - protocol: tcp
+          port_range_min: 80
+          port_range_max: 80
+          remote_ip_prefix: 192.168.0.0/16
+        - protocol: tcp # HTTPS
+          port_range_min: 443
+          port_range_max: 443
+          remote_ip_prefix: 10.0.0.0/8
+        - protocol: tcp
+          port_range_min: 443
+          port_range_max: 443
+          remote_ip_prefix: 172.16.0.0/12
+        - protocol: tcp
+          port_range_min: 443
+          port_range_max: 443
+          remote_ip_prefix: 192.168.0.0/16
+        - protocol: udp # DNS
+          port_range_min: 53
+          port_range_max: 53
+          remote_ip_prefix: 10.0.0.0/8
+        - protocol: udp
+          port_range_min: 53
+          port_range_max: 53
+          remote_ip_prefix: 172.16.0.0/12
+        - protocol: udp
+          port_range_min: 53
+          port_range_max: 53
+          remote_ip_prefix: 192.168.0.0/16
+
+  sec_group_pc2:
+    type: OS::Neutron::SecurityGroup
+    properties:
+      name: sg-uloha4-pc2
+      rules:
+        # SMB (TCP 445 a UDP 137, 138, 139)
+        - protocol: tcp
+          port_range_min: 445
+          port_range_max: 445
+        - protocol: tcp
+          port_range_min: 139
+          port_range_max: 139
+        - protocol: udp
+          port_range_min: 137
+          port_range_max: 138
+
+  # -------------------------------------------------------
+  # 3. VIRTUÁLNE STROJE
+  # -------------------------------------------------------
+
+  # ROUTER VM (ako v referencii)
+  router_vm:
+    type: OS::Nova::Server
+    properties:
+      name: router-vm
+      image: cirros
+      flavor: 1c05r1d
+      availability_zone: nova
+      networks:
+        - network: { get_param: external_net }
+        - network: { get_resource: internal_net }
+      security_groups: [ { get_resource: sec_group_main } ]
+      user_data_format: RAW
+      user_data: |
+        #!/bin/sh
+        echo "net.ipv4.ip_forward=1" >> /etc/sysctl.conf
+        sysctl -p
+        iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+
+  pc1:
+    type: OS::Nova::Server
+    properties:
+      name: pc1
+      image: cirros
+      flavor: 1c05r1d
+      availability_zone: nova
+      networks:
+        - network: { get_resource: internal_net }
+      security_groups: [ { get_resource: sec_group_main } ]
+
+  pc2:
+    type: OS::Nova::Server
+    properties:
+      name: pc2
+      image: cirros
+      flavor: 1c05r1d
+      availability_zone: nova
+      networks:
+        - network: { get_resource: internal_net }
+      security_groups: 
+        - { get_resource: sec_group_main }
+        - { get_resource: sec_group_pc2 }

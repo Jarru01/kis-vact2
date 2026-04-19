@@ -1,0 +1,129 @@
+heat_template_version: 2018-08-31
+
+description: >
+  Úloha 2: Jeden router prepájajúci dve rôzne interné siete.
+  PC1 je v sieti .33.0 a PC2 je v sieti .35.0.
+
+parameters:
+  external_net:
+    type: string
+    default: ext-net-154
+
+resources:
+
+  # -------------------------------------------------------
+  # 1. SIEŤOVÁ INFRAŠTRUKTÚRA (Router + 2x Net/Subnet)
+  # -------------------------------------------------------
+  
+  router:
+    type: OS::Neutron::Router
+    properties:
+      name: router-uloha2
+      external_gateway_info:
+        network: { get_param: external_net }
+
+  # Sieť pre PC1
+  net_pc1:
+    type: OS::Neutron::Net
+    properties:
+      name: net-33
+
+  subnet_pc1:
+    type: OS::Neutron::Subnet
+    properties:
+      name: subnet-33
+      network_id: { get_resource: net_pc1 }
+      cidr: 192.168.33.0/24
+      gateway_ip: 192.168.33.1
+
+  router_if_pc1:
+    type: OS::Neutron::RouterInterface
+    properties:
+      router_id: { get_resource: router }
+      subnet_id: { get_resource: subnet_pc1 }
+
+  # Sieť pre PC2
+  net_pc2:
+    type: OS::Neutron::Net
+    properties:
+      name: net-35
+
+  subnet_pc2:
+    type: OS::Neutron::Subnet
+    properties:
+      name: subnet-35
+      network_id: { get_resource: net_pc2 }
+      cidr: 192.168.35.0/24
+      gateway_ip: 192.168.35.1
+
+  router_if_pc2:
+    type: OS::Neutron::RouterInterface
+    properties:
+      router_id: { get_resource: router }
+      subnet_id: { get_resource: subnet_pc2 }
+
+  # -------------------------------------------------------
+  # 2. SECURITY GROUPS
+  # -------------------------------------------------------
+
+  sec_group_common:
+    type: OS::Neutron::SecurityGroup
+    properties:
+      name: sg-common-uloha2
+      rules:
+        # Povoľ ICMP (ping)
+        - protocol: icmp
+        # Povoľ FTP (port 21) na oba PC
+        - protocol: tcp
+          port_range_min: 21
+          port_range_max: 21
+        # Povoľ komunikáciu medzi sieťami (povolenie ingressu z oboch rozsahov)
+        - protocol: tcp
+          remote_ip_prefix: 192.168.33.0/24
+        - protocol: tcp
+          remote_ip_prefix: 192.168.35.0/24
+        - protocol: icmp
+          remote_ip_prefix: 192.168.33.0/24
+        - protocol: icmp
+          remote_ip_prefix: 192.168.35.0/24
+
+  sec_group_pc2:
+    type: OS::Neutron::SecurityGroup
+    properties:
+      name: sg-pc2-only
+      rules:
+        # Povoľ HTTP/s pre PC2
+        - protocol: tcp
+          port_range_min: 80
+          port_range_max: 80
+        - protocol: tcp
+          port_range_min: 443
+          port_range_max: 443
+
+  # -------------------------------------------------------
+  # 3. VIRTUÁLNE STROJE
+  # -------------------------------------------------------
+
+  pc1:
+    type: OS::Nova::Server
+    properties:
+      name: pc1
+      image: cirros
+      flavor: 1c05r1d
+      availability_zone: nova
+      networks:
+        - network: { get_resource: net_pc1 }
+      security_groups: [ { get_resource: sec_group_common } ]
+
+  pc2:
+    type: OS::Nova::Server
+    properties:
+      name: pc2
+      image: cirros
+      flavor: 1c05r1d
+      availability_zone: nova
+      networks:
+        - network: { get_resource: net_pc2 }
+      security_groups: 
+        - { get_resource: sec_group_common }
+        - { get_resource: sec_group_pc2 }
