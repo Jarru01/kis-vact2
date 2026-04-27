@@ -6,3 +6,4 @@
 * aws5 - AWS CloudFormation – S3, CloudWatch
 * openstack1 - Basic HEAT scripts (CloudFormation for openstack) 
 * openstack2 - Advanced HEAT scripts
+* terraform - basic terraform/**tofu** script
